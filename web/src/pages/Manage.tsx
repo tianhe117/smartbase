@@ -3,6 +3,7 @@ import {
   getVolumes, createVolume, updateVolume, deleteVolume,
   getLessons, createLesson, updateLesson, deleteLesson,
   getCharacters, batchAddCharacters, updateCharacter, deleteCharacter,
+  verifyAuth, login, changePassword,
 } from '../api/client'
 import type { Volume, Lesson, Character } from '../types'
 import VolumeLessonForm from '../components/VolumeLessonForm'
@@ -32,6 +33,141 @@ function saveSelection(volumeId?: number, lessonId?: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ volumeId, lessonId }))
 }
 
+function LoginForm({ onLogin }: { onLogin: () => void }) {
+  const [pw, setPw] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await login(pw)
+      localStorage.setItem('smartbase_token', res.token)
+      onLogin()
+    } catch {
+      setError('密码错误')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-8 w-full max-w-sm">
+        <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">课本管理</h2>
+        <div className="mb-4">
+          <input
+            type="password"
+            value={pw}
+            onChange={e => setPw(e.target.value)}
+            placeholder="请输入管理密码"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 text-lg"
+            autoFocus
+          />
+        </div>
+        {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+        >
+          {loading ? '验证中...' : '登录'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (newPw !== confirmPw) {
+      setError('两次输入的新密码不一致')
+      return
+    }
+    if (!newPw) {
+      setError('新密码不能为空')
+      return
+    }
+    setLoading(true)
+    try {
+      await changePassword(oldPw, newPw)
+      setSuccess(true)
+    } catch {
+      setError('原密码错误')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="text-center">
+            <div className="text-4xl mb-3">✅</div>
+            <p className="text-gray-700 font-medium">密码修改成功</p>
+            <button onClick={onClose} className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+              确定
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-gray-800 mb-4">修改密码</h3>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="password"
+            value={oldPw}
+            onChange={e => setOldPw(e.target.value)}
+            placeholder="原密码"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+            autoFocus
+          />
+          <input
+            type="password"
+            value={newPw}
+            onChange={e => setNewPw(e.target.value)}
+            placeholder="新密码"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+          />
+          <input
+            type="password"
+            value={confirmPw}
+            onChange={e => setConfirmPw(e.target.value)}
+            placeholder="确认新密码"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+          />
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <div className="flex gap-3 mt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+              取消
+            </button>
+            <button type="submit" disabled={loading} className="flex-1 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+              {loading ? '提交中...' : '确认修改'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Manage() {
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null)
@@ -40,6 +176,9 @@ export default function Manage() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [modal, setModal] = useState<ModalState>(null)
   const [initialized, setInitialized] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
+  const [showChangePw, setShowChangePw] = useState(false)
 
   const loadVolumes = useCallback(() => {
     return getVolumes().then(v => {
@@ -49,8 +188,22 @@ export default function Manage() {
     })
   }, [])
 
-  // Restore selection from localStorage on mount
+  // Check auth on mount
   useEffect(() => {
+    const token = localStorage.getItem('smartbase_token')
+    if (!token) {
+      setAuthChecked(true)
+      return
+    }
+    verifyAuth()
+      .then(() => setAuthenticated(true))
+      .catch(() => localStorage.removeItem('smartbase_token'))
+      .finally(() => setAuthChecked(true))
+  }, [])
+
+  // Restore selection from localStorage on mount (after auth)
+  useEffect(() => {
+    if (!authenticated) return
     loadVolumes().then(async (sorted) => {
       const sel = loadSelection()
       if (sel.volumeId) {
@@ -72,7 +225,7 @@ export default function Manage() {
       }
       setInitialized(true)
     })
-  }, []) // eslint-disable-line
+  }, [authenticated]) // eslint-disable-line
 
   // Reload lessons when volume changes (but not on initial restore)
   useEffect(() => {
@@ -173,14 +326,27 @@ export default function Manage() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('smartbase_token')
+    setAuthenticated(false)
+  }
+
   // Validation: check duplicate no
   const getVolumeNos = (excludeId?: number) =>
     volumes.filter(v => v.id !== excludeId).map(v => v.no)
   const getLessonNos = (excludeId?: number) =>
     lessons.filter(l => l.id !== excludeId).map(l => l.no)
 
+  if (!authChecked) return null
+  if (!authenticated) return <LoginForm onLogin={() => setAuthenticated(true)} />
+
   return (
-    <div className="flex flex-col md:flex-row gap-4 min-h-[60vh]">
+    <div>
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <button onClick={() => setShowChangePw(true)} className="text-sm text-gray-500 hover:text-gray-700">修改密码</button>
+        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700">退出</button>
+      </div>
+      <div className="flex flex-col md:flex-row gap-4 min-h-[60vh]">
       {/* Volume list */}
       <div className="md:w-56 shrink-0">
         <div className="flex items-center justify-between mb-3">
@@ -300,6 +466,8 @@ export default function Manage() {
           onCancel={() => setModal(null)}
         />
       )}
+    </div>
+    {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
     </div>
   )
 }

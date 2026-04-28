@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 
 from .database import init_db
-from .routers import volumes, lessons, characters, learning, review, lookup
+from .routers import volumes, lessons, characters, learning, review, lookup, auth
 
 app = FastAPI(title="SmartBase", description="小学识字学习工具", version="1.0.0")
 
@@ -29,6 +29,7 @@ app.include_router(characters.router)
 app.include_router(learning.router)
 app.include_router(review.router)
 app.include_router(lookup.router)
+app.include_router(auth.router)
 
 
 @app.get("/api/health")

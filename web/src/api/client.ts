@@ -3,6 +3,23 @@ import type { Volume, Lesson, Character, ReviewChar, ReviewStats } from '../type
 
 const api = axios.create({ baseURL: '/api/v1' })
 
+// Auth interceptor - attach token to all requests
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('smartbase_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Auth
+export const login = (password: string) =>
+  api.post<{ token: string }>('/auth/login', { password }).then(r => r.data)
+export const verifyAuth = () =>
+  api.get<{ ok: boolean }>('/auth/verify').then(r => r.data)
+export const changePassword = (old_password: string, new_password: string) =>
+  api.post<{ ok: boolean }>('/auth/change-password', { old_password, new_password }).then(r => r.data)
+
 // Volumes
 export const getVolumes = () => api.get<Volume[]>('/volumes').then(r => r.data)
 export const createVolume = (data: { no: number; name: string }) =>

@@ -30,3 +30,15 @@ def init_db():
             conn.commit()
         except Exception:
             pass  # Column already exists
+
+    # Ensure default password exists
+    import hashlib
+    from .models.settings import Settings
+    db = SessionLocal()
+    try:
+        if not db.query(Settings).filter(Settings.key == "password").first():
+            default_pw = hashlib.sha256("admin".encode()).hexdigest()
+            db.add(Settings(key="password", value=default_pw))
+            db.commit()
+    finally:
+        db.close()
