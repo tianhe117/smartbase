@@ -78,27 +78,19 @@ export default function Learn() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="font-bold text-gray-700">{volume?.name || '学习'}</h2>
         <div className="text-sm text-gray-500">
           {index + 1} / {chars.length}
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-8">
-        <div
-          className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${((index + 1) / chars.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Character card */}
-      <div className="flex justify-center py-4">
+      <div className="flex-1 min-h-0">
         <CharacterCard
           key={chars[index].id}
           character={chars[index]}
+          fullHeight
           onKnown={() => {
             setStats(s => ({ ...s, known: s.known + 1 }))
             if (index + 1 >= chars.length) setFinished(true)

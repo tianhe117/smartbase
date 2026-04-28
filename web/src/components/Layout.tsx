@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </nav>
-      <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
+      <main className="max-w-4xl mx-auto px-4 py-3">{children}</main>
     </div>
   )
 }

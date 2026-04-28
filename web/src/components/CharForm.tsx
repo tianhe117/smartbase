@@ -25,7 +25,7 @@ export default function CharForm({ title, initial, onSave, onDelete, onCancel }:
   const [word3, setWord3] = useState(initial?.word_3 || '')
   const [charType, setCharType] = useState<CharType>(initial?.char_type || 'new')
   const [loading, setLoading] = useState(false)
-  const lookupTimer = useRef<ReturnType<typeof setTimeout>>()
+  const lookupTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     setChar(initial?.char || '')

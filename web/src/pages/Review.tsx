@@ -4,7 +4,7 @@ import {
   getVolumes, getReviewNext, submitReviewResult, getReviewStats,
   getAllCharacters, getReviewStatsAll,
 } from '../api/client'
-import type { ReviewChar, ReviewStats, Character } from '../types'
+import type { ReviewStats, Character } from '../types'
 
 interface QueueItem {
   id: number
@@ -42,11 +42,9 @@ export default function Review() {
     let name = '复习'
 
     if (volumeId === 'all') {
-      // 总复习 - 跨册
       const vids = volumesParam ? volumesParam.split(',').map(Number) : undefined
       name = '总复习'
       if (mode === 'smart') {
-        // Smart mode: load from each volume and combine
         const allChars: QueueItem[] = []
         if (vids) {
           for (const vid of vids) {
@@ -54,11 +52,9 @@ export default function Review() {
             allChars.push(...chars)
           }
         }
-        // Shuffle
         items = allChars.sort(() => Math.random() - 0.5).slice(0, 30)
         statsData = await getReviewStatsAll()
       } else {
-        // All mode
         const chars = await getAllCharacters(vids?.[0])
         items = chars.map(c => ({ ...c }))
         if (vids && vids.length > 1) {
@@ -71,7 +67,6 @@ export default function Review() {
         statsData = await getReviewStatsAll()
       }
     } else {
-      // 单册复习
       const vid = Number(volumeId)
       const lessonIds = lessonsParam && lessonsParam !== 'all'
         ? lessonsParam.split(',').map(Number)
@@ -187,54 +182,47 @@ export default function Review() {
   const words = [current.word_1, current.word_2, current.word_3].filter(Boolean)
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="font-bold text-gray-700">{title}</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {streak >= 3 && (
-            <span className="text-sm text-orange-500 font-medium">🔥 连续 {streak} 个</span>
+            <span className="text-sm text-orange-500 font-medium">🔥 {streak}</span>
           )}
           <span className="text-sm text-gray-500">{index + 1} / {queue.length}</span>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-8">
-        <div
-          className="bg-amber-500 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${((index + 1) / queue.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Card */}
-      <div className="flex flex-col sm:flex-row items-center">
-        {/* Left: Character area */}
-        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-          {/* Pinyin */}
-          <div className="h-[12vh] sm:h-[15vh] flex items-end justify-center">
+      <div className="flex-1 min-h-0">
+        <div className="flex flex-col h-full transition-all duration-300">
+          {/* Top: content area */}
+          <div className="flex-1 flex flex-col items-center justify-center min-h-0 gap-1">
+            {/* Pinyin */}
             {pinyinVisible ? (
-              <span className="font-pinyin text-[12vw] sm:text-[8vh] text-orange-500 font-medium leading-none">{current.pinyin}</span>
+              <span className="font-pinyin text-[10vw] sm:text-[5vh] text-orange-500 font-medium leading-none animate-fade-in">
+                {current.pinyin}
+              </span>
             ) : (
               <button
                 onClick={() => setPinyinVisible(true)}
-                className="px-8 py-2 text-lg sm:text-xl font-medium text-orange-600 bg-orange-50 border-2 border-orange-200 border-dashed rounded-xl hover:bg-orange-100 hover:border-orange-300 transition-colors"
+                className="px-6 py-1.5 text-base font-medium text-orange-600 bg-orange-50 border-2 border-orange-200 border-dashed rounded-xl hover:bg-orange-100 hover:border-orange-300 transition-colors"
               >
                 拼音
               </button>
             )}
-          </div>
 
-          {/* Character */}
-          <div className="h-[40vh] sm:h-[50vh] w-full flex items-center justify-center">
-            <span className="font-song text-[45vw] sm:text-[35vh] font-bold text-gray-800 select-none leading-none">{current.char}</span>
-          </div>
+            {/* Character */}
+            <div className="flex-1 flex items-center justify-center w-full min-h-0">
+              <span className="font-song text-[min(40vw,35vh)] font-bold text-gray-800 select-none leading-none">
+                {current.char}
+              </span>
+            </div>
 
-          {/* Words */}
-          <div className="h-[10vh] flex items-start justify-center">
+            {/* Words */}
             {wordsVisible && words.length > 0 ? (
-              <div className="flex gap-3 flex-wrap justify-center animate-fade-in">
+              <div className="flex gap-2 flex-wrap justify-center animate-fade-in">
                 {words.map((w, i) => (
-                  <span key={i} className="font-pinyin px-5 py-2 bg-amber-50 border border-amber-200 rounded-full text-2xl sm:text-3xl text-amber-800">
+                  <span key={i} className="font-pinyin px-4 py-1 bg-amber-50 border border-amber-200 rounded-full text-lg sm:text-2xl text-amber-800">
                     {w}
                   </span>
                 ))}
@@ -242,28 +230,28 @@ export default function Review() {
             ) : (
               <button
                 onClick={() => setWordsVisible(true)}
-                className="px-8 py-2 text-lg sm:text-xl font-medium text-amber-600 bg-amber-50 border-2 border-amber-200 border-dashed rounded-xl hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                className="px-6 py-1.5 text-base font-medium text-amber-600 bg-amber-50 border-2 border-amber-200 border-dashed rounded-xl hover:bg-amber-100 hover:border-amber-300 transition-colors"
               >
                 组词
               </button>
             )}
           </div>
-        </div>
 
-        {/* Right: result buttons */}
-        <div className="flex sm:flex-col gap-3 sm:gap-4 sm:w-40 sm:pl-6 justify-center items-center mt-4 sm:mt-0">
-          <button
-            onClick={() => handleResult(true)}
-            className="px-5 py-2.5 sm:py-3.5 bg-green-500 text-white text-base sm:text-xl font-bold rounded-xl hover:bg-green-600 active:scale-95 transition-all shadow-md whitespace-nowrap"
-          >
-            认识 ✓
-          </button>
-          <button
-            onClick={() => handleResult(false)}
-            className="px-5 py-2.5 sm:py-3.5 bg-red-400 text-white text-base sm:text-xl font-bold rounded-xl hover:bg-red-500 active:scale-95 transition-all shadow-md whitespace-nowrap"
-          >
-            不认识
-          </button>
+          {/* Bottom: action buttons */}
+          <div className="flex gap-3 justify-center items-center pt-2 pb-1">
+            <button
+              onClick={() => handleResult(true)}
+              className="px-5 py-2 bg-green-500 text-white text-lg font-bold rounded-xl hover:bg-green-600 active:scale-95 transition-all shadow-md whitespace-nowrap"
+            >
+              认识 ✓
+            </button>
+            <button
+              onClick={() => handleResult(false)}
+              className="px-5 py-2 bg-red-400 text-white text-lg font-bold rounded-xl hover:bg-red-500 active:scale-95 transition-all shadow-md whitespace-nowrap"
+            >
+              不认识
+            </button>
+          </div>
         </div>
       </div>
     </div>
