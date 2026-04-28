@@ -5,6 +5,6 @@
 @import "tailwindcss";
 
 @theme {
-  --font-song: 'Noto Serif SC', 'SimSun', 'Songti SC', 'STSong', serif;
+  --font-song: 'FangSong', 'STFangsong', 'FangSong_GB2312', serif;
   --font-pinyin: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
