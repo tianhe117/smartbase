@@ -3,3 +3,5 @@ uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36
 pydantic==2.10.3
 python-multipart==0.0.19
+pypinyin==0.55.0
+httpx==0.28.1

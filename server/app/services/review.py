@@ -54,15 +54,18 @@ def select_review_chars(
     db: Session,
     volume_id: int,
     count: int = 20,
+    lesson_ids: list[int] | None = None,
 ) -> list[dict]:
     """Select characters for review using weighted random sampling."""
-    # Get all characters in this volume
-    chars = (
+    # Get characters in this volume (optionally filtered by lessons)
+    query = (
         db.query(Character, Lesson.no.label("lesson_no"))
         .join(Lesson, Character.lesson_id == Lesson.id)
         .filter(Lesson.volume_id == volume_id)
-        .all()
     )
+    if lesson_ids:
+        query = query.filter(Lesson.id.in_(lesson_ids))
+    chars = query.all()
 
     if not chars:
         return []

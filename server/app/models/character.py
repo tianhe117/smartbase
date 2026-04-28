@@ -16,6 +16,7 @@ class Character(Base):
     word_1: Mapped[str] = mapped_column(String(50), nullable=False)
     word_2: Mapped[str | None] = mapped_column(String(50), nullable=True)
     word_3: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    char_type: Mapped[str] = mapped_column(String(10), nullable=False, default="new")  # new, mistake, mastered
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     lesson = relationship("Lesson", back_populates="characters")

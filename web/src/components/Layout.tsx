@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 const navItems = [
   { path: '/', label: '首页' },
-  { path: '/manage', label: '管理' },
+  { path: '/manage', label: '课本管理' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {

@@ -1,0 +1,27 @@
+# SmartBase Nginx 反向代理配置示例
+# 将此配置添加到你的 nginx 配置中
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    # SSL 证书（根据你自己的证书路径配置）
+    ssl_certificate     /path/to/your/cert.pem;
+    ssl_certificate_key /path/to/your/key.pem;
+
+    # 代理到 SmartBase
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# HTTP 跳转 HTTPS（可选）
+server {
+    listen 80;
+    server_name your-domain.com;
+    return 301 https://$host$request_uri;
+}

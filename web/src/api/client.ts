@@ -28,15 +28,29 @@ export const createCharacter = (lessonId: number, data: { char: string; pinyin: 
 export const updateCharacter = (id: number, data: { char?: string; pinyin?: string; word_1?: string; word_2?: string | null; word_3?: string | null }) =>
   api.put<Character>(`/characters/${id}`, data).then(r => r.data)
 export const deleteCharacter = (id: number) => api.delete(`/characters/${id}`)
+export const batchAddCharacters = (lessonId: number, chars: string) =>
+  api.post<Character[]>(`/lessons/${lessonId}/characters/batch`, { chars }).then(r => r.data)
 
 // Learning
 export const getLearningChars = (volumeId: number) =>
   api.get<Character[]>(`/learning/volume/${volumeId}`).then(r => r.data)
 
+// Lookup
+export const lookupCharacter = (char: string) =>
+  api.post<{ char: string; pinyin: string; word_1: string; word_2: string }>('/lookup/character', { char }).then(r => r.data)
+
+// Characters - all
+export const getAllCharacters = (volumeId?: number) =>
+  api.get<Character[]>('/characters/all', { params: volumeId ? { volume_id: volumeId } : {} }).then(r => r.data)
+
 // Review
-export const getReviewNext = (volumeId: number, count = 20) =>
-  api.get<ReviewChar[]>(`/review/next`, { params: { volume_id: volumeId, count } }).then(r => r.data)
+export const getReviewNext = (volumeId: number, count = 20, lessonIds?: number[]) =>
+  api.get<ReviewChar[]>(`/review/next`, {
+    params: { volume_id: volumeId, count, lesson_ids: lessonIds?.join(',') },
+  }).then(r => r.data)
 export const submitReviewResult = (characterId: number, known: boolean) =>
   api.post('/review/result', { character_id: characterId, known }).then(r => r.data)
 export const getReviewStats = (volumeId: number) =>
   api.get<ReviewStats>('/review/stats', { params: { volume_id: volumeId } }).then(r => r.data)
+export const getReviewStatsAll = () =>
+  api.get<ReviewStats>('/review/stats-all').then(r => r.data)

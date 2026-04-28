@@ -1,5 +1,5 @@
 #!/bin/bash
-# 启动生产模式（FastAPI 同时 serve 前端和 API）
+# 生产模式启动（FastAPI 同时 serve 前端和 API）
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -7,7 +7,10 @@ cd "$SCRIPT_DIR"
 
 # 检查虚拟环境
 if [ ! -d "venv" ]; then
-    echo "错误: 未找到虚拟环境，请先运行: python3 -m venv venv && source venv/bin/activate && pip install -r server/requirements.txt"
+    echo "错误: 未找到虚拟环境，请先运行:"
+    echo "  python3 -m venv venv"
+    echo "  source venv/bin/activate"
+    echo "  pip install -r server/requirements.txt"
     exit 1
 fi
 
@@ -17,7 +20,17 @@ if [ ! -d "server/static" ]; then
     cd web && npm install && npm run build && cd ..
 fi
 
-echo "启动服务: http://localhost:8000"
+# 配置（可通过环境变量覆盖）
+HOST="${HOST:-0.0.0.0}"
+PORT="${PORT:-8000}"
+WORKERS="${WORKERS:-1}"
+
+echo "启动服务: http://${HOST}:${PORT}"
 cd server
 source ../venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec uvicorn app.main:app \
+    --host "$HOST" \
+    --port "$PORT" \
+    --workers "$WORKERS" \
+    --proxy-headers \
+    --forwarded-allow-ips='*'

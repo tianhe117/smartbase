@@ -16,6 +16,8 @@ export interface Lesson {
   char_count: number
 }
 
+export type CharType = 'new' | 'mistake' | 'mastered'
+
 export interface Character {
   id: number
   lesson_id: number
@@ -24,6 +26,7 @@ export interface Character {
   word_1: string
   word_2: string | null
   word_3: string | null
+  char_type: CharType
   created_at: string
 }
 

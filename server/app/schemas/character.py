@@ -8,6 +8,7 @@ class CharacterCreate(BaseModel):
     word_1: str = Field(..., min_length=1, max_length=50, description="组词1")
     word_2: str | None = Field(None, max_length=50, description="组词2")
     word_3: str | None = Field(None, max_length=50, description="组词3")
+    char_type: str = Field("new", pattern="^(new|mistake|mastered)$", description="类型: new/mistake/mastered")
 
 
 class CharacterUpdate(BaseModel):
@@ -16,6 +17,7 @@ class CharacterUpdate(BaseModel):
     word_1: str | None = Field(None, min_length=1, max_length=50)
     word_2: str | None = Field(None, max_length=50)
     word_3: str | None = Field(None, max_length=50)
+    char_type: str | None = Field(None, pattern="^(new|mistake|mastered)$")
 
 
 class CharacterOut(BaseModel):
@@ -26,6 +28,7 @@ class CharacterOut(BaseModel):
     word_1: str
     word_2: str | None
     word_3: str | None
+    char_type: str
     created_at: datetime
 
     class Config:

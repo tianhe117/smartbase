@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   getVolumes, createVolume, updateVolume, deleteVolume,
   getLessons, createLesson, updateLesson, deleteLesson,
-  getCharacters, createCharacter, updateCharacter, deleteCharacter,
+  getCharacters, batchAddCharacters, updateCharacter, deleteCharacter,
 } from '../api/client'
 import type { Volume, Lesson, Character } from '../types'
 import VolumeLessonForm from '../components/VolumeLessonForm'
 import CharForm from '../components/CharForm'
+import BatchCharForm from '../components/BatchCharForm'
 
 type ModalState =
   | { type: 'addVolume' }
@@ -17,6 +18,20 @@ type ModalState =
   | { type: 'editChar'; char: Character }
   | null
 
+const STORAGE_KEY = 'smartbase_manage_selection'
+
+function loadSelection() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as { volumeId?: number; lessonId?: number }
+  } catch {}
+  return {}
+}
+
+function saveSelection(volumeId?: number, lessonId?: number) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ volumeId, lessonId }))
+}
+
 export default function Manage() {
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null)
@@ -24,32 +39,80 @@ export default function Manage() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [characters, setCharacters] = useState<Character[]>([])
   const [modal, setModal] = useState<ModalState>(null)
+  const [initialized, setInitialized] = useState(false)
 
   const loadVolumes = useCallback(() => {
-    getVolumes().then(v => {
-      setVolumes(v)
-      if (selectedVolume) {
-        const updated = v.find(x => x.id === selectedVolume.id)
-        if (updated) setSelectedVolume(updated)
-        else { setSelectedVolume(null); setLessons([]); setSelectedLesson(null); setCharacters([]) }
-      }
+    return getVolumes().then(v => {
+      const sorted = [...v].sort((a, b) => a.no - b.no)
+      setVolumes(sorted)
+      return sorted
     })
-  }, [selectedVolume])
+  }, [])
 
-  const loadLessons = useCallback((volumeId: number) => {
-    getLessons(volumeId).then(l => {
-      setLessons(l)
-      if (selectedLesson) {
-        const updated = l.find(x => x.id === selectedLesson.id)
-        if (updated) setSelectedLesson(updated)
-        else { setSelectedLesson(null); setCharacters([]) }
+  // Restore selection from localStorage on mount
+  useEffect(() => {
+    loadVolumes().then(async (sorted) => {
+      const sel = loadSelection()
+      if (sel.volumeId) {
+        const vol = sorted.find(x => x.id === sel.volumeId)
+        if (vol) {
+          setSelectedVolume(vol)
+          const l = await getLessons(vol.id)
+          const sortedLessons = [...l].sort((a, b) => a.no - b.no)
+          setLessons(sortedLessons)
+          if (sel.lessonId) {
+            const les = sortedLessons.find(x => x.id === sel.lessonId)
+            if (les) {
+              setSelectedLesson(les)
+              const chars = await getCharacters(les.id)
+              setCharacters(chars)
+            }
+          }
+        }
       }
+      setInitialized(true)
     })
-  }, [selectedLesson])
+  }, []) // eslint-disable-line
 
-  useEffect(() => { loadVolumes() }, []) // eslint-disable-line
-  useEffect(() => { if (selectedVolume) loadLessons(selectedVolume.id) }, [selectedVolume]) // eslint-disable-line
-  useEffect(() => { if (selectedLesson) getCharacters(selectedLesson.id).then(setCharacters) }, [selectedLesson])
+  // Reload lessons when volume changes (but not on initial restore)
+  useEffect(() => {
+    if (!initialized) return
+    if (selectedVolume) {
+      getLessons(selectedVolume.id).then(l => {
+        const sorted = [...l].sort((a, b) => a.no - b.no)
+        setLessons(sorted)
+        // Keep lesson selection if still valid
+        if (selectedLesson) {
+          const updated = sorted.find(x => x.id === selectedLesson.id)
+          if (updated) setSelectedLesson(updated)
+          else { setSelectedLesson(null); setCharacters([]) }
+        }
+      })
+      saveSelection(selectedVolume.id, selectedLesson?.id)
+    }
+  }, [selectedVolume]) // eslint-disable-line
+
+  // Reload characters when lesson changes
+  useEffect(() => {
+    if (!initialized) return
+    if (selectedLesson) {
+      getCharacters(selectedLesson.id).then(setCharacters)
+      saveSelection(selectedVolume?.id, selectedLesson.id)
+    }
+  }, [selectedLesson]) // eslint-disable-line
+
+  const handleSelectVolume = (v: Volume) => {
+    setSelectedVolume(v)
+    setSelectedLesson(null)
+    setCharacters([])
+    saveSelection(v.id, undefined)
+  }
+
+  const handleSelectLesson = (l: Lesson) => {
+    setSelectedLesson(l)
+    getCharacters(l.id).then(setCharacters)
+    saveSelection(selectedVolume?.id, l.id)
+  }
 
   const handleSaveVolume = async (no: number, name?: string) => {
     if (modal?.type === 'addVolume') {
@@ -68,13 +131,22 @@ export default function Manage() {
       await updateLesson(modal.lesson.id, { no })
     }
     setModal(null)
-    if (selectedVolume) loadLessons(selectedVolume.id)
+    if (selectedVolume) {
+      const l = await getLessons(selectedVolume.id)
+      setLessons([...l].sort((a, b) => a.no - b.no))
+    }
   }
 
-  const handleSaveChar = async (data: { char: string; pinyin: string; word_1: string; word_2?: string; word_3?: string }) => {
+  const handleBatchAdd = async (chars: string) => {
     if (modal?.type === 'addChar') {
-      await createCharacter(modal.lessonId, data)
-    } else if (modal?.type === 'editChar') {
+      await batchAddCharacters(modal.lessonId, chars)
+    }
+    setModal(null)
+    if (selectedLesson) getCharacters(selectedLesson.id).then(setCharacters)
+  }
+
+  const handleSaveChar = async (data: { char: string; pinyin: string; word_1: string; word_2?: string | null; word_3?: string | null; char_type?: string }) => {
+    if (modal?.type === 'editChar') {
       await updateCharacter(modal.char.id, data)
     }
     setModal(null)
@@ -84,7 +156,10 @@ export default function Manage() {
   const handleDeleteVolume = async (id: number) => {
     if (!confirm('确定删除该册？将同时删除所有课和汉字。')) return
     await deleteVolume(id)
-    if (selectedVolume?.id === id) { setSelectedVolume(null); setLessons([]); setSelectedLesson(null); setCharacters([]) }
+    if (selectedVolume?.id === id) {
+      setSelectedVolume(null); setLessons([]); setSelectedLesson(null); setCharacters([])
+      saveSelection(undefined, undefined)
+    }
     loadVolumes()
   }
 
@@ -92,14 +167,17 @@ export default function Manage() {
     if (!confirm('确定删除该课？')) return
     await deleteLesson(id)
     if (selectedLesson?.id === id) { setSelectedLesson(null); setCharacters([]) }
-    if (selectedVolume) loadLessons(selectedVolume.id)
+    if (selectedVolume) {
+      const l = await getLessons(selectedVolume.id)
+      setLessons([...l].sort((a, b) => a.no - b.no))
+    }
   }
 
-  const handleDeleteChar = async (id: number) => {
-    if (!confirm('确定删除该汉字？')) return
-    await deleteCharacter(id)
-    if (selectedLesson) getCharacters(selectedLesson.id).then(setCharacters)
-  }
+  // Validation: check duplicate no
+  const getVolumeNos = (excludeId?: number) =>
+    volumes.filter(v => v.id !== excludeId).map(v => v.no)
+  const getLessonNos = (excludeId?: number) =>
+    lessons.filter(l => l.id !== excludeId).map(l => l.no)
 
   return (
     <div className="flex flex-col md:flex-row gap-4 min-h-[60vh]">
@@ -113,7 +191,7 @@ export default function Manage() {
           {volumes.map(v => (
             <div
               key={v.id}
-              onClick={() => { setSelectedVolume(v); setSelectedLesson(null); setCharacters([]) }}
+              onClick={() => handleSelectVolume(v)}
               className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                 selectedVolume?.id === v.id ? 'bg-orange-100 text-orange-800' : 'bg-white hover:bg-gray-50 text-gray-700'
               }`}
@@ -144,7 +222,7 @@ export default function Manage() {
             {lessons.map(l => (
               <div
                 key={l.id}
-                onClick={() => { setSelectedLesson(l); getCharacters(l.id).then(setCharacters) }}
+                onClick={() => handleSelectLesson(l)}
                 className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                   selectedLesson?.id === l.id ? 'bg-orange-100 text-orange-800' : 'bg-white hover:bg-gray-50 text-gray-700'
                 }`}
@@ -174,17 +252,19 @@ export default function Manage() {
         ) : characters.length === 0 ? (
           <div className="text-sm text-gray-400">暂无汉字，点击上方添加</div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
             {characters.map(c => (
-              <div key={c.id} className="bg-white rounded-lg p-3 border border-gray-100 group relative">
-                <div className="text-3xl font-bold text-center text-gray-800">{c.char}</div>
-                <div className="text-sm text-center text-orange-500">{c.pinyin}</div>
-                <div className="text-xs text-center text-gray-400 mt-1">{c.word_1}</div>
-                <div className="absolute top-1 right-1 hidden group-hover:flex gap-1">
-                  <button onClick={() => setModal({ type: 'editChar', char: c })} className="text-xs bg-gray-100 rounded px-1 hover:bg-gray-200">编辑</button>
-                  <button onClick={() => handleDeleteChar(c.id)} className="text-xs bg-red-50 text-red-500 rounded px-1 hover:bg-red-100">删</button>
-                </div>
-              </div>
+              <button
+                key={c.id}
+                onClick={() => setModal({ type: 'editChar', char: c })}
+                className={`rounded-lg p-2 border aspect-square flex items-center justify-center cursor-pointer transition-colors ${
+                  c.char_type === 'mastered' ? 'bg-green-50 border-green-200' :
+                  c.char_type === 'mistake' ? 'bg-red-50 border-red-200' :
+                  'bg-white border-gray-100'
+                } hover:ring-2 hover:ring-orange-300`}
+              >
+                <span className="text-2xl sm:text-3xl font-bold text-gray-800">{c.char}</span>
+              </button>
             ))}
           </div>
         )}
@@ -192,22 +272,33 @@ export default function Manage() {
 
       {/* Modals */}
       {modal?.type === 'addVolume' && (
-        <VolumeLessonForm title="新建册" onSave={handleSaveVolume} onCancel={() => setModal(null)} />
+        <VolumeLessonForm title="新建册" existingNos={getVolumeNos()} onSave={handleSaveVolume} onCancel={() => setModal(null)} />
       )}
       {modal?.type === 'editVolume' && (
-        <VolumeLessonForm title="编辑册" initialNo={modal.volume.no} initialName={modal.volume.name} onSave={handleSaveVolume} onCancel={() => setModal(null)} />
+        <VolumeLessonForm title="编辑册" initialNo={modal.volume.no} initialName={modal.volume.name} existingNos={getVolumeNos(modal.volume.id)} onSave={handleSaveVolume} onCancel={() => setModal(null)} />
       )}
       {modal?.type === 'addLesson' && (
-        <VolumeLessonForm title="新建课" showName={false} initialNo={lessons.length + 1} onSave={handleSaveLesson} onCancel={() => setModal(null)} />
+        <VolumeLessonForm title="新建课" showName={false} initialNo={lessons.length > 0 ? Math.max(...lessons.map(l => l.no)) + 1 : 1} existingNos={getLessonNos()} onSave={handleSaveLesson} onCancel={() => setModal(null)} />
       )}
       {modal?.type === 'editLesson' && (
-        <VolumeLessonForm title="编辑课" showName={false} initialNo={modal.lesson.no} onSave={handleSaveLesson} onCancel={() => setModal(null)} />
+        <VolumeLessonForm title="编辑课" showName={false} initialNo={modal.lesson.no} existingNos={getLessonNos(modal.lesson.id)} onSave={handleSaveLesson} onCancel={() => setModal(null)} />
       )}
       {modal?.type === 'addChar' && (
-        <CharForm title="添加汉字" onSave={handleSaveChar} onCancel={() => setModal(null)} />
+        <BatchCharForm lessonId={modal.lessonId} onSave={handleBatchAdd} onCancel={() => setModal(null)} />
       )}
       {modal?.type === 'editChar' && (
-        <CharForm title="编辑汉字" initial={modal.char} onSave={handleSaveChar} onCancel={() => setModal(null)} />
+        <CharForm
+          title="编辑汉字"
+          initial={modal.char}
+          onSave={handleSaveChar}
+          onDelete={async () => {
+            if (!confirm('确定删除该汉字？')) return
+            await deleteCharacter(modal.char.id)
+            setModal(null)
+            if (selectedLesson) getCharacters(selectedLesson.id).then(setCharacters)
+          }}
+          onCancel={() => setModal(null)}
+        />
       )}
     </div>
   )

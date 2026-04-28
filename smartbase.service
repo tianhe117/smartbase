@@ -1,0 +1,18 @@
+[Unit]
+Description=SmartBase - 小学识字学习工具
+After=network.target
+
+[Service]
+Type=exec
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/SmartBase
+Environment=PATH=/opt/SmartBase/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOST=127.0.0.1
+Environment=PORT=8000
+ExecStart=/opt/SmartBase/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips='*'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

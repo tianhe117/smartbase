@@ -4,10 +4,9 @@ interface Props {
   volume: Volume
   onStudy: (id: number) => void
   onReview: (id: number) => void
-  onManage: (id: number) => void
 }
 
-export default function VolumeCard({ volume, onStudy, onReview, onManage }: Props) {
+export default function VolumeCard({ volume, onStudy, onReview }: Props) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-5 flex flex-col gap-3">
       <div>
@@ -29,12 +28,6 @@ export default function VolumeCard({ volume, onStudy, onReview, onManage }: Prop
           className="flex-1 py-2 px-3 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors"
         >
           复习
-        </button>
-        <button
-          onClick={() => onManage(volume.id)}
-          className="py-2 px-3 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          管理
         </button>
       </div>
     </div>

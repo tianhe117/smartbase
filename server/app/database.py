@@ -21,3 +21,12 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migration: add char_type column if missing
+    with engine.connect() as conn:
+        try:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE characters ADD COLUMN char_type VARCHAR(10) NOT NULL DEFAULT 'new'"
+            ))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists

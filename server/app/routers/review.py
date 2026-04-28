@@ -11,9 +11,19 @@ router = APIRouter(prefix="/api/v1/review", tags=["review"])
 
 
 @router.get("/next", response_model=list[ReviewCharOut])
-def get_next_review(volume_id: int, count: int = 20, db: Session = Depends(get_db)):
-    """Get next batch of characters for review using spaced repetition."""
-    chars = select_review_chars(db, volume_id, count)
+def get_next_review(
+    volume_id: int,
+    count: int = 20,
+    lesson_ids: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Get next batch of characters for review using spaced repetition.
+    lesson_ids: comma-separated lesson IDs to filter, e.g. "1,2,3"
+    """
+    parsed_ids = None
+    if lesson_ids:
+        parsed_ids = [int(x) for x in lesson_ids.split(",") if x.strip()]
+    chars = select_review_chars(db, volume_id, count, parsed_ids)
     return chars
 
 
@@ -59,3 +69,19 @@ def get_stats(volume_id: int, db: Session = Depends(get_db)):
     """Get review statistics for a volume."""
     stats = get_review_stats(db, volume_id)
     return stats
+
+
+@router.get("/stats-all", response_model=ReviewStatsOut)
+def get_stats_all(db: Session = Depends(get_db)):
+    """Get review statistics across all volumes."""
+    from ..models.volume import Volume
+    volumes = db.query(Volume).all()
+    if not volumes:
+        return {"total_chars": 0, "mastered": 0, "learning": 0, "unfamiliar": 0, "new_chars": 0}
+    # Aggregate stats from all volumes
+    total = {"total_chars": 0, "mastered": 0, "learning": 0, "unfamiliar": 0, "new_chars": 0}
+    for v in volumes:
+        s = get_review_stats(db, v.id)
+        for k in total:
+            total[k] += s[k]
+    return total

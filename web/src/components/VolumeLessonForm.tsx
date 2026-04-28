@@ -5,18 +5,30 @@ interface Props {
   initialNo?: number
   initialName?: string
   showName?: boolean
+  existingNos?: number[]
   onSave: (no: number, name?: string) => void
   onCancel: () => void
 }
 
-export default function VolumeLessonForm({ title, initialNo = 1, initialName = '', showName = true, onSave, onCancel }: Props) {
+export default function VolumeLessonForm({ title, initialNo = 1, initialName = '', showName = true, existingNos = [], onSave, onCancel }: Props) {
   const [no, setNo] = useState(initialNo)
   const [name, setName] = useState(initialName)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     setNo(initialNo)
     setName(initialName)
   }, [initialNo, initialName])
+
+  useEffect(() => {
+    if (existingNos.includes(no)) {
+      setError(`序号 ${no} 已存在`)
+    } else {
+      setError('')
+    }
+  }, [no, existingNos])
+
+  const canSave = no >= 1 && !error && (showName ? name.trim().length > 0 : true)
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
@@ -30,8 +42,11 @@ export default function VolumeLessonForm({ title, initialNo = 1, initialName = '
               min={1}
               value={no}
               onChange={e => setNo(Number(e.target.value))}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+              className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                error ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 focus:ring-orange-300'
+              }`}
             />
+            {error && <span className="text-xs text-red-500">{error}</span>}
           </label>
           {showName && (
             <label className="flex flex-col gap-1">
@@ -54,8 +69,9 @@ export default function VolumeLessonForm({ title, initialNo = 1, initialName = '
             取消
           </button>
           <button
-            onClick={() => onSave(no, name || undefined)}
-            className="px-4 py-2 text-sm text-white bg-orange-500 rounded-lg hover:bg-orange-600"
+            onClick={() => canSave && onSave(no, name || undefined)}
+            disabled={!canSave}
+            className="px-4 py-2 text-sm text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             保存
           </button>
