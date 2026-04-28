@@ -78,7 +78,7 @@ export default function Learn() {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 72px)' }}>
       <div className="flex items-center justify-between shrink-0">
         <h2 className="font-bold text-gray-700">{volume?.name || '学习'}</h2>
         <div className="text-sm text-gray-500">

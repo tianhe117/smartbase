@@ -182,7 +182,7 @@ export default function Review() {
   const words = [current.word_1, current.word_2, current.word_3].filter(Boolean)
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 72px)' }}>
       <div className="flex items-center justify-between shrink-0">
         <h2 className="font-bold text-gray-700">{title}</h2>
         <div className="flex items-center gap-3">
