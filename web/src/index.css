@@ -1,10 +1,6 @@
-/* 字体 - 必须在 @import "tailwindcss" 之前 */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
-
 @import "tailwindcss";
 
 @theme {
-  --font-song: 'FangSong', 'STFangsong', 'FangSong_GB2312', serif;
-  --font-pinyin: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-song: 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif;
+  --font-pinyin: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', 'Segoe UI', sans-serif;
 }
