@@ -50,7 +50,7 @@ export default function CharacterCard({ character, onKnown, onUnknown, showPinyi
           </div>
 
           {/* Character */}
-          <span className="font-song text-[min(40vw,35vh)] font-bold text-gray-800 select-none leading-none shrink-0">
+          <span className="font-song text-[min(40vw,35vh)] text-gray-800 select-none leading-none shrink-0">
             {character.char}
           </span>
 
@@ -119,7 +119,7 @@ export default function CharacterCard({ character, onKnown, onUnknown, showPinyi
 
         {/* Character */}
         <div className="h-[40vh] sm:h-[50vh] w-full flex items-center justify-center">
-          <span className="font-song text-[45vw] sm:text-[35vh] font-bold text-gray-800 select-none leading-none">
+          <span className="font-song text-[45vw] sm:text-[35vh] text-gray-800 select-none leading-none">
             {character.char}
           </span>
         </div>

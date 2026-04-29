@@ -215,7 +215,7 @@ export default function Review() {
             </div>
 
             {/* Character */}
-            <span className="font-song text-[min(40vw,35vh)] font-bold text-gray-800 select-none leading-none shrink-0">
+            <span className="font-song text-[min(40vw,35vh)] text-gray-800 select-none leading-none shrink-0">
               {current.char}
             </span>
 
