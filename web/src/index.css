@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'SimKai';
+  src: url('/simkai.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --font-song: 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif;
+  --font-song: 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', 'SimKai', serif;
   --font-pinyin: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', 'Segoe UI', sans-serif;
 }
