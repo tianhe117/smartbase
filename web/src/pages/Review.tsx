@@ -64,6 +64,7 @@ export default function Review() {
           }
           items = all.map(c => ({ ...c }))
         }
+        items = items.sort(() => Math.random() - 0.5)
         statsData = await getReviewStatsAll()
       }
     } else {
@@ -78,7 +79,7 @@ export default function Review() {
         items = await getReviewNext(vid, 20, lessonIds)
       } else {
         const chars = await getAllCharacters(vid)
-        items = chars.map(c => ({ ...c }))
+        items = chars.map(c => ({ ...c })).sort(() => Math.random() - 0.5)
       }
       statsData = await getReviewStats(vid)
     }
